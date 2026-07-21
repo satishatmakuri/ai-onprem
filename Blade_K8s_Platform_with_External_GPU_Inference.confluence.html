@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Blade Kubernetes AI Platform with Separate GPU Inference Plane</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+  <style>
+  :root{--brand:#1F4E78;--brand2:#2E75B6;--ink:#172b4d;--muted:#5e6c84;--rule:#dfe1e6;--code:#f4f5f7;}
+  body{font-family:-apple-system,Segoe UI,Arial,sans-serif;color:var(--ink);line-height:1.55;max-width:1000px;margin:0 auto;padding:24px;}
+  h1{color:var(--brand);border-bottom:3px solid var(--brand);padding-bottom:6px;font-size:1.9em;}
+  h2{color:var(--brand);border-bottom:1px solid var(--rule);padding-bottom:4px;margin-top:1.6em;}
+  h3{color:var(--brand2);}
+  a{color:var(--brand2);}
+  table{border-collapse:collapse;width:100%;margin:1em 0;font-size:0.93em;}
+  th,td{border:1px solid var(--rule);padding:7px 10px;text-align:left;vertical-align:top;}
+  th{background:var(--brand);color:#fff;}
+  tr:nth-child(even) td{background:#f7f9fc;}
+  code{background:var(--code);padding:1px 5px;border-radius:3px;font-family:SFMono-Regular,Consolas,monospace;font-size:0.88em;}
+  pre{background:#0b1220;color:#e6edf3;padding:14px;border-radius:6px;overflow:auto;font-size:0.85em;line-height:1.4;}
+  pre code{background:transparent;color:inherit;padding:0;}
+  blockquote{border-left:4px solid var(--brand2);background:#eef4fb;margin:1em 0;padding:8px 16px;color:var(--ink);}
+  #TOC{background:#f4f5f7;border:1px solid var(--rule);border-radius:6px;padding:12px 20px;margin:1em 0;}
+  #TOC ul{margin:4px 0;}
+  .title{font-size:2.1em;color:var(--brand);}
+  hr{border:none;border-top:1px solid var(--rule);margin:1.5em 0;}
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Blade Kubernetes AI Platform with Separate GPU Inference Plane</h1>
+</header>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#on-premises-kubernetes-ai-solution-platform-blades-with-a-separate-gpu-inference-plane">On-Premises Kubernetes AI Solution Platform (Blades) with a Separate GPU Inference Plane</a>
+<ul>
+<li><a href="#table-of-contents">Table of Contents</a></li>
+</ul></li>
+<li><a href="#1-executive-summary--architecture-intent">1. Executive Summary &amp; Architecture Intent</a></li>
+<li><a href="#2-two-plane-reference-architecture">2. Two-Plane Reference Architecture</a></li>
+<li><a href="#3-plane-boundary-how-blades-reach-the-gpu-inference-endpoint">3. Plane Boundary: How Blades Reach the GPU Inference Endpoint</a></li>
+<li><a href="#4-blade-kubernetes-platform-design">4. Blade Kubernetes Platform Design</a>
+<ul>
+<li><a href="#41-cluster-shape">4.1 Cluster shape</a></li>
+<li><a href="#42-blade-role-allocation-microservices-platform">4.2 Blade role allocation (microservices platform)</a></li>
+<li><a href="#43-namespaces">4.3 Namespaces</a></li>
+</ul></li>
+<li><a href="#5-ai-solution-microservices-catalogue-runs-on-the-blades">5. AI-Solution Microservices Catalogue (runs on the blades)</a></li>
+<li><a href="#6-what-runs-where--placement-decision-matrix">6. What Runs Where — Placement Decision Matrix</a></li>
+<li><a href="#7-gpu-inference-plane-design-the-separate-server">7. GPU Inference Plane Design (the separate server)</a>
+<ul>
+<li><a href="#71-sizing-for-glm-52-744b-moe-40b-active-up-to-1m-ctx-docest">7.1 Sizing for GLM-5.2 (744B MoE, ~40B active, up to 1M ctx) [DOC/EST]</a></li>
+<li><a href="#72-inference-engine">7.2 Inference engine</a></li>
+<li><a href="#73-gpu-host-software">7.3 GPU host software</a></li>
+<li><a href="#74-integration-mode-choose">7.4 Integration mode (choose)</a></li>
+</ul></li>
+<li><a href="#8-inference-service-contract-openai-compatible-api">8. Inference Service Contract (OpenAI-compatible API)</a></li>
+<li><a href="#9-networking-between-planes">9. Networking Between Planes</a>
+<ul>
+<li><a href="#91-segmented-networks">9.1 Segmented networks</a></li>
+<li><a href="#92-reaching-the-gpu-endpoint-from-the-cluster-option-a">9.2 Reaching the GPU endpoint from the cluster (Option A)</a></li>
+<li><a href="#93-egress-control-cilium-networkpolicy">9.3 Egress control (Cilium NetworkPolicy)</a></li>
+<li><a href="#94-port-matrix-cross-plane-additions">9.4 Port matrix (cross-plane additions)</a></li>
+</ul></li>
+<li><a href="#10-security-architecture-cross-plane-zero-trust">10. Security Architecture (cross-plane, zero-trust)</a></li>
+<li><a href="#11-storage--data-architecture">11. Storage &amp; Data Architecture</a></li>
+<li><a href="#12-observability-across-the-boundary">12. Observability Across the Boundary</a></li>
+<li><a href="#13-autoscaling-capacity--load-management">13. Autoscaling, Capacity &amp; Load Management</a></li>
+<li><a href="#14-high-availability--failure-analysis">14. High Availability &amp; Failure Analysis</a></li>
+<li><a href="#15-gitops-cicd--mlops">15. GitOps, CI/CD &amp; MLOps</a></li>
+<li><a href="#16-backup-dr--air-gapped-operation">16. Backup, DR &amp; Air-Gapped Operation</a></li>
+<li><a href="#17-implementation-phases">17. Implementation Phases</a></li>
+<li><a href="#18-installation-runbook-ordered-air-gap-assumed-versions-pinned">18. Installation Runbook (ordered, air-gap assumed, versions pinned)</a>
+<ul>
+<li><a href="#181-blade-platform-phases-36">18.1 Blade platform (Phases 3–6)</a></li>
+<li><a href="#182-gpu-inference-plane-phase-7-on-the-separate-gpu-host">18.2 GPU inference plane (Phase 7, on the separate GPU host)</a></li>
+<li><a href="#183-wire-the-blades-to-the-gpu-endpoint-phase-8">18.3 Wire the blades to the GPU endpoint (Phase 8)</a></li>
+<li><a href="#184-smoke-test-end-to-end">18.4 Smoke test (end to end)</a></li>
+</ul></li>
+<li><a href="#appendices">Appendices</a>
+<ul>
+<li><a href="#appendix-a-adrs">Appendix A. ADRs</a></li>
+<li><a href="#appendix-b-cross-plane-port-matrix">Appendix B. Cross-plane port matrix</a></li>
+<li><a href="#appendix-c-kubernetes-manifests">Appendix C. Kubernetes manifests</a></li>
+<li><a href="#appendix-d-helm-values">Appendix D. Helm values</a></li>
+<li><a href="#appendix-e-gpu-sizing-worksheet">Appendix E. GPU sizing worksheet</a></li>
+<li><a href="#appendix-f-production-readiness-checklist">Appendix F. Production-readiness checklist</a></li>
+<li><a href="#appendix-g-risk-register-top-10">Appendix G. Risk register (top 10)</a></li>
+<li><a href="#appendix-h-bill-of-materials-software">Appendix H. Bill of Materials (software)</a></li>
+<li><a href="#appendix-i-capacity-model">Appendix I. Capacity model</a></li>
+<li><a href="#appendix-j-gpu-expansion-roadmap">Appendix J. GPU expansion roadmap</a></li>
+<li><a href="#notes-on-facts--assumptions">Notes on facts &amp; assumptions</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="on-premises-kubernetes-ai-solution-platform-blades-with-a-separate-gpu-inference-plane">On-Premises Kubernetes AI Solution Platform (Blades) with a Separate GPU Inference Plane</h1>
+<p><strong>Enterprise Architecture, Low-Level Design &amp; Deployment Runbook</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Document class</td>
+<td>Implementation-ready architecture + runbook</td>
+</tr>
+<tr class="even">
+<td>Design intent</td>
+<td>Blade estate hosts the <strong>Kubernetes microservices / AI-solution platform</strong>; a <strong>separate GPU server</strong> performs GLM-5.2 model inference</td>
+</tr>
+<tr class="odd">
+<td>Blade hardware</td>
+<td>6× Supermicro SBI-8149P-C4N (CPU-only) in SBE-820C-822 chassis (~1,000 cores, ~2 TB RAM aggregate)</td>
+</tr>
+<tr class="even">
+<td>Inference hardware</td>
+<td>Separate dedicated GPU server(s) — sized in §7</td>
+</tr>
+<tr class="odd">
+<td>Orchestration</td>
+<td>Kubernetes (RKE2) on blades</td>
+</tr>
+<tr class="even">
+<td>Environment</td>
+<td>Production, multi-user, secure, observable, recoverable, restricted/air-gapped</td>
+</tr>
+<tr class="odd">
+<td>Data rule</td>
+<td>Enterprise data &amp; prompts remain <strong>on-premises</strong> end-to-end</td>
+</tr>
+<tr class="even">
+<td>Date</td>
+<td>2026-07-21</td>
+</tr>
+<tr class="odd">
+<td>Companion doc</td>
+<td><em>GLM-5.2 On-Prem CPU Feasibility</em> (established CPU-only inference is <strong>not</strong> viable → this design moves inference to GPU)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Why this design.</strong> The prior feasibility study proved the CPU-only blades <strong>cannot</strong> interactively host full GLM-5.2 (744B MoE; ~460–480 GB weights at Q4; decode is memory-bandwidth-bound). The correct architecture therefore <strong>splits the two planes</strong>: the blades run everything <em>around</em> the model (APIs, orchestration, RAG, vector search, security, observability, MLOps), and a <strong>purpose-built GPU server</strong> runs the model itself. The blades call the GPU inference endpoint over the network. This preserves the entire Kubernetes platform investment and isolates the scarce, expensive GPU capacity behind a clean, swappable service contract.</p>
+</blockquote>
+<blockquote>
+<p><strong>Evidence legend.</strong> <strong>[DOC]</strong> documented capability · <strong>[EST]</strong> engineering estimate (validate by benchmark) · <strong>[ASSUMPTION]</strong> assumed pending discovery · <strong>[TESTED]</strong> measured on your hardware (none yet). Untagged text is design guidance.</p>
+</blockquote>
+<hr />
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol>
+<li>Executive Summary &amp; Architecture Intent</li>
+<li>Two-Plane Reference Architecture</li>
+<li>Plane Boundary: How Blades Reach the GPU Inference Endpoint</li>
+<li>Blade Kubernetes Platform Design</li>
+<li>AI-Solution Microservices Catalogue (what runs on the blades)</li>
+<li>What Runs Where — Placement Decision Matrix</li>
+<li>GPU Inference Plane Design (the separate server)</li>
+<li>Inference Service Contract (OpenAI-compatible API)</li>
+<li>Networking Between Planes</li>
+<li>Security Architecture (cross-plane, zero-trust)</li>
+<li>Storage &amp; Data Architecture</li>
+<li>Observability Across the Boundary</li>
+<li>Autoscaling, Capacity &amp; Load Management</li>
+<li>High Availability &amp; Failure Analysis</li>
+<li>GitOps, CI/CD &amp; MLOps</li>
+<li>Backup, DR &amp; Air-Gapped Operation</li>
+<li>Implementation Phases</li>
+<li>Installation Runbook</li>
+</ol>
+<ul>
+<li>Appendices A–N: manifests, Helm values, port matrix, ADRs, checklists, risk register, BOM, capacity model, GPU sizing</li>
+</ul>
+<hr />
+<h1 id="1-executive-summary--architecture-intent">1. Executive Summary &amp; Architecture Intent</h1>
+<p><strong>Decision:</strong> adopt a <strong>two-plane on-prem architecture</strong>.</p>
+<ul>
+<li><strong>Plane 1 — Application/Platform plane (the 6 blades, CPU-only).</strong> A production RKE2 Kubernetes cluster hosting the <strong>AI-solution microservices</strong>: API gateway, model router, RAG/orchestration services, vector database, document ingestion pipelines, caching, business/application services, plus platform services (registry, secrets, GitOps, observability, security). Optionally also hosts <strong>CPU-friendly models</strong> (embeddings, rerankers) since those run well on blades.</li>
+<li><strong>Plane 2 — Inference plane (separate GPU server).</strong> Runs GLM-5.2 (and other large models) on GPUs using a GPU-class inference engine (vLLM / SGLang / TensorRT-LLM), exposing an <strong>OpenAI-compatible HTTPS endpoint</strong>. It is stateless with respect to business data — it receives a prompt, returns tokens, logs <strong>no content</strong>.</li>
+</ul>
+<p><strong>The contract between planes is a network API</strong>, not shared memory. The blades never try to run GLM-5.2; they call it. This gives clean separation of concerns, independent scaling, independent lifecycle/upgrades, and a straightforward path to add more GPU capacity later.</p>
+<p><strong>Key properties delivered</strong></p>
+<ul>
+<li>All data and prompts stay on-prem (both planes are in your data centre; traffic is mTLS-encrypted and never leaves).</li>
+<li>The GPU server is a <strong>swappable backend</strong> — you can start with one server, add more, or change the inference engine without touching the microservices.</li>
+<li>Blades provide real HA for the <em>platform</em>; the GPU plane's HA depends on GPU count (§14).</li>
+<li>Embeddings/rerankers run on the blades (cheap, CPU-friendly), keeping GPU capacity for the big model.</li>
+</ul>
+<p><strong>Go decision:</strong> <strong>GO.</strong> Build the blade K8s platform now (Phases 0–6); stand up the GPU inference plane in parallel (Phase 7); integrate and test (Phases 8–10).</p>
+<hr />
+<h1 id="2-two-plane-reference-architecture">2. Two-Plane Reference Architecture</h1>
+<pre><code>┌───────────────────────────────────────────────────────────────────────────┐
+│ PLANE 1 — BLADES: Kubernetes AI-Solution / Microservices Platform (CPU)      │
+│                                                                             │
+│  Consumers ──► Ingress/TLS ──► API Gateway (authN/Z, quota, audit-meta)     │
+│                                   │                                         │
+│                                   ▼                                         │
+│                          AI Orchestration / RAG services                    │
+│                          (retrieval, prompt assembly, tools, agents)        │
+│                            │            │                │                  │
+│                   Vector DB (Qdrant)  Embeddings/Rerank  Cache (Redis)      │
+│                            │            (CPU pods)         │                │
+│                            ▼                                                 │
+│                   Model Router (LiteLLM / Envoy)                             │
+│                            │  OpenAI-compatible calls                        │
+│  Platform: Harbor · Vault · Argo CD · Prometheus/Grafana/Loki · Kyverno      │
+└───────────────────────────────┬─────────────────────────────────────────────┘
+                                 │  mTLS HTTPS  (dedicated inference VLAN)
+                                 │  /v1/chat/completions, /v1/embeddings
+                                 ▼
+┌───────────────────────────────────────────────────────────────────────────┐
+│ PLANE 2 — SEPARATE GPU SERVER(S): Inference Plane                            │
+│                                                                             │
+│   Inference Gateway (TLS, authN) ──► vLLM / SGLang / TensorRT-LLM            │
+│                                        serving GLM-5.2 (tensor-parallel)     │
+│   Local NVMe model store · GPU metrics exporter · NO content logging         │
+└───────────────────────────────────────────────────────────────────────────┘
+</code></pre>
+<p><strong>Integration options for Plane 2 (choose per §7.4):</strong></p>
+<ul>
+<li><strong>Option A — Standalone external endpoint (recommended default).</strong> GPU server is its own host (or small cluster), <em>not</em> a K8s node of the blade cluster. Blades reach it via a stable in-cluster abstraction (<code>ExternalName</code>/<code>Endpoints</code> + egress policy). Cleanest separation; independent lifecycle.</li>
+<li><strong>Option B — GPU node pool joined to the same cluster.</strong> GPU server joins the RKE2 cluster as a <strong>tainted GPU worker</strong> (<code>node-role=gpu</code>, NVIDIA device plugin). Unified scheduling/observability, but couples lifecycles and mixes a heavyweight node into the blade cluster.</li>
+</ul>
+<p>Both keep the microservices on the blades and the model on the GPU; they differ only in how the GPU host is managed.</p>
+<hr />
+<h1 id="3-plane-boundary-how-blades-reach-the-gpu-inference-endpoint">3. Plane Boundary: How Blades Reach the GPU Inference Endpoint</h1>
+<p>The <strong>only</strong> thing the blades know about the model is a URL + credentials, brokered by the <strong>Model Router (LiteLLM)</strong>. Everything else (which engine, how many GPUs, which quantization) is hidden behind the contract.</p>
+<p><strong>Call path:</strong> app → gateway → orchestrator → <strong>LiteLLM router</strong> → (egress mTLS) → <strong>GPU inference gateway</strong> → engine → tokens stream back.</p>
+<p>Benefits of routing through LiteLLM rather than calling the GPU directly:</p>
+<ul>
+<li>One place for <strong>authN to the GPU plane</strong>, retries, timeouts, circuit-breaking, and failover between GPU endpoints.</li>
+<li>Per-app <strong>quotas, rate limits, token accounting</strong> without each service re-implementing them.</li>
+<li><strong>Model aliasing</strong> — <code>glm-5.2</code>, <code>glm-mid</code>, <code>bge-embed</code> are logical names; router maps them to CPU pods or the GPU endpoint transparently.</li>
+<li>Swap or add GPU servers by editing router config, no application changes.</li>
+</ul>
+<hr />
+<h1 id="4-blade-kubernetes-platform-design">4. Blade Kubernetes Platform Design</h1>
+<p><em>(Reuses the hardened platform from the feasibility doc; summarized here, focused on the microservices role.)</em></p>
+<h2 id="41-cluster-shape">4.1 Cluster shape</h2>
+<ul>
+<li><strong>RKE2</strong>, 3 control-plane blades (stacked etcd, quorum survives 1 loss), 3 worker blades for microservices + CPU models.</li>
+<li>Control-plane blades <strong>tainted</strong> <code>NoSchedule</code>; <strong>etcd on dedicated NVMe</strong> (p99 fsync &lt; 10 ms).</li>
+<li>CNI <strong>Cilium</strong> (eBPF, NetworkPolicy, egress control — important for the plane boundary).</li>
+<li>Distribution/version pins, CIS profile, audit logging as per companion doc §6–7.</li>
+</ul>
+<h2 id="42-blade-role-allocation-microservices-platform">4.2 Blade role allocation (microservices platform)</h2>
+<table>
+<thead>
+<tr class="header">
+<th>Blade</th>
+<th>Role</th>
+<th>Hosts</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>blade-01</td>
+<td>control-plane + etcd-1</td>
+<td>apiserver, ingress-nginx</td>
+</tr>
+<tr class="even">
+<td>blade-02</td>
+<td>control-plane + etcd-2</td>
+<td>Vault, cert-manager, Harbor</td>
+</tr>
+<tr class="odd">
+<td>blade-03</td>
+<td>control-plane + etcd-3</td>
+<td>Prometheus, Loki, Grafana, Argo CD</td>
+</tr>
+<tr class="even">
+<td>blade-04</td>
+<td>worker</td>
+<td>gateway, orchestrator/RAG, LiteLLM router (replicas)</td>
+</tr>
+<tr class="odd">
+<td>blade-05</td>
+<td>worker</td>
+<td>Qdrant (vector DB), Redis cache, embeddings (TEI)</td>
+</tr>
+<tr class="even">
+<td>blade-06</td>
+<td>worker</td>
+<td>rerankers, ingestion workers, embeddings replica, burst</td>
+</tr>
+</tbody>
+</table>
+<p>Reserve host capacity on every blade (OS + kubelet + <strong>≥20% headroom</strong>); QoS <code>Guaranteed</code> for latency-sensitive services; pod anti-affinity so stateful/router replicas never co-locate.</p>
+<h2 id="43-namespaces">4.3 Namespaces</h2>
+<p><code>platform</code> (registry, vault, cert-mgr), <code>gateway</code>, <code>ai-apps</code> (orchestrators/RAG/business svcs), <code>data</code> (Qdrant, Redis), <code>models-cpu</code> (embeddings/rerank), <code>observability</code>, <code>argocd</code>. Default-deny NetworkPolicy per namespace.</p>
+<hr />
+<h1 id="5-ai-solution-microservices-catalogue-runs-on-the-blades">5. AI-Solution Microservices Catalogue (runs on the blades)</h1>
+<table>
+<thead>
+<tr class="header">
+<th>Service</th>
+<th>Purpose</th>
+<th>Tech (open-source)</th>
+<th>Plane</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>API Gateway</strong></td>
+<td>TLS termination, authN/Z, quota, audit-metadata</td>
+<td>Envoy / Kong / APISIX</td>
+<td>blades</td>
+<td>no prompt/response bodies logged</td>
+</tr>
+<tr class="even">
+<td><strong>Model Router</strong></td>
+<td>OpenAI-compatible facade, routing, retries, failover, token accounting</td>
+<td><strong>LiteLLM</strong></td>
+<td>blades</td>
+<td>brokers CPU models + GPU endpoint</td>
+</tr>
+<tr class="odd">
+<td><strong>AI Orchestrator / RAG</strong></td>
+<td>retrieval, prompt assembly, tool/agent flows</td>
+<td>LangChain/LlamaIndex service, or custom FastAPI</td>
+<td>blades</td>
+<td>stateless, horizontally scaled</td>
+</tr>
+<tr class="even">
+<td><strong>Vector Database</strong></td>
+<td>embeddings storage + ANN search</td>
+<td><strong>Qdrant</strong> (or Weaviate/Milvus)</td>
+<td>blades</td>
+<td>CPU-friendly; persistent NVMe</td>
+</tr>
+<tr class="odd">
+<td><strong>Embeddings</strong></td>
+<td>text→vector</td>
+<td><strong>text-embeddings-inference</strong> (BGE-M3)</td>
+<td>blades (CPU)</td>
+<td>keep off GPU to save capacity</td>
+</tr>
+<tr class="even">
+<td><strong>Reranker</strong></td>
+<td>cross-encoder reranking</td>
+<td>TEI / ONNX Runtime</td>
+<td>blades (CPU)</td>
+<td>CPU-friendly</td>
+</tr>
+<tr class="odd">
+<td><strong>Document Ingestion</strong></td>
+<td>parse, chunk, embed, upsert</td>
+<td>workers + queue</td>
+<td>blades</td>
+<td>batch/stream</td>
+</tr>
+<tr class="even">
+<td><strong>Cache</strong></td>
+<td>prompt/result &amp; session cache, rate-limit store</td>
+<td><strong>Redis</strong></td>
+<td>blades</td>
+<td>semantic cache optional</td>
+</tr>
+<tr class="odd">
+<td><strong>Queue / Async</strong></td>
+<td>batch inference jobs, ingestion</td>
+<td>NATS / RabbitMQ / KEDA-scaled</td>
+<td>blades</td>
+<td>backpressure to GPU plane</td>
+</tr>
+<tr class="even">
+<td><strong>Business/App services</strong></td>
+<td>the actual AI solutions (chat UI, copilots, APIs)</td>
+<td>your microservices</td>
+<td>blades</td>
+<td>consume the router only</td>
+</tr>
+<tr class="odd">
+<td><strong>Guardrails/PII</strong></td>
+<td>input/output filtering, redaction</td>
+<td>open-source guardrail lib</td>
+<td>blades</td>
+<td>before/after model call</td>
+</tr>
+<tr class="even">
+<td><strong>AuthN provider</strong></td>
+<td>OIDC/SSO</td>
+<td>Keycloak / AD federation</td>
+<td>blades</td>
+<td>issues app tokens</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Platform services:</strong> Harbor (registry+scan+sign), Vault (secrets), Argo CD (GitOps), cert-manager (internal CA), Kyverno (admission policy), MinIO (object store), kube-prometheus-stack + Loki (observability), Velero (backup).</p>
+<blockquote>
+<p>The blades run <strong>everything except the large-model forward pass</strong>. Embeddings and rerankers deliberately stay on CPU blades — they're cheap there and preserve GPU headroom for GLM-5.2.</p>
+</blockquote>
+<hr />
+<h1 id="6-what-runs-where--placement-decision-matrix">6. What Runs Where — Placement Decision Matrix</h1>
+<table>
+<thead>
+<tr class="header">
+<th>Workload</th>
+<th>Blades (CPU)</th>
+<th>GPU server</th>
+<th>Rationale</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>API gateway, router, orchestration, RAG logic</td>
+<td>✅</td>
+<td>❌</td>
+<td>I/O-bound, cheap on CPU</td>
+</tr>
+<tr class="even">
+<td>Vector DB, cache, queues, ingestion</td>
+<td>✅</td>
+<td>❌</td>
+<td>data services; keep near apps + on-prem storage</td>
+</tr>
+<tr class="odd">
+<td>Embeddings, rerankers</td>
+<td>✅</td>
+<td>(optional)</td>
+<td>CPU-adequate; save GPU</td>
+</tr>
+<tr class="even">
+<td><strong>GLM-5.2 / large LLM inference</strong></td>
+<td>❌</td>
+<td>✅</td>
+<td>needs GPU VRAM + bandwidth</td>
+</tr>
+<tr class="odd">
+<td>Other large/vision/low-latency models</td>
+<td>❌</td>
+<td>✅</td>
+<td>GPU-class</td>
+</tr>
+<tr class="even">
+<td>Platform, security, observability, GitOps</td>
+<td>✅</td>
+<td>(agents only)</td>
+<td>control lives on blades</td>
+</tr>
+<tr class="odd">
+<td>Model weights master copy</td>
+<td>✅ (MinIO)</td>
+<td>✅ (local NVMe cache)</td>
+<td>staged on-prem, pulled to GPU host</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h1 id="7-gpu-inference-plane-design-the-separate-server">7. GPU Inference Plane Design (the separate server)</h1>
+<h2 id="71-sizing-for-glm-52-744b-moe-40b-active-up-to-1m-ctx-docest">7.1 Sizing for GLM-5.2 (744B MoE, ~40B active, up to 1M ctx) [DOC/EST]</h2>
+<table>
+<thead>
+<tr class="header">
+<th>Serving precision</th>
+<th>Weights (approx)</th>
+<th>Practical GPU configuration (illustrative)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>FP8</strong></td>
+<td>~740–800 GB <strong>[EST]</strong></td>
+<td>8× 80–141 GB GPUs (e.g., H100/H200-class) with tensor parallelism, or 1–2 nodes</td>
+</tr>
+<tr class="even">
+<td><strong>INT4 / Q4</strong></td>
+<td>~460–480 GB <strong>[DOC]</strong></td>
+<td>6–8× 80 GB GPUs, TP=8</td>
+</tr>
+<tr class="odd">
+<td>Full BF16</td>
+<td>~1.5 TB <strong>[DOC/EST]</strong></td>
+<td>multi-node GPU (16× 80 GB) — usually unnecessary</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Guardrail:</strong> confirm exact GPU count/VRAM against the <em>pinned</em> engine + GLM-5.2 build during procurement/benchmark; add <strong>KV-cache VRAM</strong> for concurrency and context (can be tens–hundreds of GB at long context). Long-context (1M) dramatically increases KV-cache and is a separate sizing exercise.</p>
+</blockquote>
+<p><strong>Recommended starting point [EST]:</strong> a single GPU server (or 2U node) with <strong>8× 80 GB-class GPUs + NVLink/NVSwitch</strong>, ≥1 TB system RAM, ≥4 TB NVMe for model store, dual 25/100 GbE. This serves GLM-5.2 at FP8/INT4 with tensor parallelism over NVLink (fast intra-node interconnect — unlike the Ethernet-connected CPU blades, this is where tensor parallelism works well).</p>
+<h2 id="72-inference-engine">7.2 Inference engine</h2>
+<table>
+<thead>
+<tr class="header">
+<th>Engine</th>
+<th>Fit</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>vLLM</strong></td>
+<td><strong>Recommended</strong></td>
+<td>high-throughput, PagedAttention, OpenAI-compatible server, tensor-parallel, strong GLM support</td>
+</tr>
+<tr class="even">
+<td><strong>SGLang</strong></td>
+<td>strong alternative</td>
+<td>excellent throughput/structured output</td>
+</tr>
+<tr class="odd">
+<td><strong>TensorRT-LLM</strong></td>
+<td>max perf, more ops effort</td>
+<td>NVIDIA-optimized</td>
+</tr>
+</tbody>
+</table>
+<p>Run the engine's built-in <strong>OpenAI-compatible server</strong> (<code>vllm serve ... --api-key ...</code>) behind a thin <strong>inference gateway</strong> (TLS, authN, rate-limit) on the GPU host or a small front proxy.</p>
+<h2 id="73-gpu-host-software">7.3 GPU host software</h2>
+<ul>
+<li>OS + NVIDIA driver + CUDA (pinned), NVIDIA Container Toolkit.</li>
+<li>Containerized engine, image <strong>pinned by digest</strong>, model on <strong>local NVMe</strong> (pulled+verified from blade MinIO).</li>
+<li><strong>node-exporter + DCGM-exporter</strong> for GPU metrics scraped by the blades' Prometheus.</li>
+<li><strong>No content logging</strong>; metadata metrics only.</li>
+</ul>
+<h2 id="74-integration-mode-choose">7.4 Integration mode (choose)</h2>
+<ul>
+<li><strong>A. Standalone (recommended):</strong> GPU host is not a K8s node. Managed by its own systemd/compose or a tiny single-node k3s. Blades reach it via <code>ExternalName</code>/manual <code>Endpoints</code>. <strong>Cleanest separation, independent upgrades, blast-radius isolation.</strong></li>
+<li><strong>B. GPU node pool:</strong> join GPU host to RKE2 as a tainted node (<code>nvidia.com/gpu</code> device plugin). Unified scheduling/observability, but couples cluster lifecycle to the GPU host and mixes a very different node into the cluster. Choose only if you want one control plane for everything.</li>
+</ul>
+<blockquote>
+<p><strong>Recommendation:</strong> start with <strong>Option A</strong> for clean separation, revisit B if you later run several GPU nodes and want unified scheduling.</p>
+</blockquote>
+<hr />
+<h1 id="8-inference-service-contract-openai-compatible-api">8. Inference Service Contract (OpenAI-compatible API)</h1>
+<ul>
+<li><strong>Protocol:</strong> HTTPS (mTLS), OpenAI schema: <code>POST /v1/chat/completions</code> (stream), <code>/v1/completions</code>, <code>/v1/embeddings</code> (if any embed on GPU), <code>/v1/models</code>.</li>
+<li><strong>Auth:</strong> bearer token (from Vault) <em>plus</em> mTLS client cert; GPU gateway validates both.</li>
+<li><strong>Versioning:</strong> model alias (<code>glm-5.2</code>) + engine version header; router pins the alias to a specific backend.</li>
+<li><strong>Timeouts/limits:</strong> request timeout, max tokens, max concurrent streams per client (enforced at router and GPU gateway).</li>
+<li><strong>Idempotency/retries:</strong> router retries on connection errors only (not on partial streams); circuit-breaker opens on sustained 5xx/timeout.</li>
+<li><strong>Backpressure:</strong> GPU returns 429 when queue is full; router surfaces 429 with <code>Retry-After</code>; batch jobs go through the queue.</li>
+</ul>
+<hr />
+<h1 id="9-networking-between-planes">9. Networking Between Planes</h1>
+<h2 id="91-segmented-networks">9.1 Segmented networks</h2>
+<table>
+<thead>
+<tr class="header">
+<th>Network</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Management/IPMI VLAN</td>
+<td>BMC of blades + GPU host</td>
+</tr>
+<tr class="even">
+<td>Blade cluster VLANs</td>
+<td>node/API, pod/CNI, storage</td>
+</tr>
+<tr class="odd">
+<td><strong>Inference VLAN (new)</strong></td>
+<td>dedicated path blades ↔︎ GPU host; mTLS only; jumbo frames</td>
+</tr>
+<tr class="even">
+<td>Consumer/ingress VLAN</td>
+<td>clients → blade gateway</td>
+</tr>
+</tbody>
+</table>
+<p>The <strong>inference VLAN</strong> is the only route between planes. Firewall it to allow just the GPU gateway port from the router pods' egress identity.</p>
+<h2 id="92-reaching-the-gpu-endpoint-from-the-cluster-option-a">9.2 Reaching the GPU endpoint from the cluster (Option A)</h2>
+<div class="sourceCode" id="cb2"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="co"># ExternalName service abstracts the GPU host behind a stable in-cluster DNS name</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a><span class="fu">apiVersion</span><span class="kw">:</span><span class="at"> v1</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a><span class="fu">kind</span><span class="kw">:</span><span class="at"> Service</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a><span class="fu">metadata</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> gpu-inference</span><span class="kw">,</span><span class="at"> </span><span class="fu">namespace</span><span class="kw">:</span><span class="at"> gateway </span><span class="kw">}</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true"></a><span class="fu">spec</span><span class="kw">:</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true"></a><span class="at">  </span><span class="fu">type</span><span class="kw">:</span><span class="at"> ExternalName</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true"></a><span class="at">  </span><span class="fu">externalName</span><span class="kw">:</span><span class="at"> gpu-infer.inference.internal</span><span class="co">   # DNS or use Endpoints for a bare IP</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true"></a><span class="pp">---</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true"></a><span class="co"># For a bare IP, use a headless Service + manual Endpoints</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true"></a><span class="fu">apiVersion</span><span class="kw">:</span><span class="at"> v1</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true"></a><span class="fu">kind</span><span class="kw">:</span><span class="at"> Endpoints</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true"></a><span class="fu">metadata</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> gpu-inference</span><span class="kw">,</span><span class="at"> </span><span class="fu">namespace</span><span class="kw">:</span><span class="at"> gateway </span><span class="kw">}</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true"></a><span class="fu">subsets</span><span class="kw">:</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">addresses</span><span class="kw">:</span><span class="at"> </span><span class="kw">[{</span><span class="at"> </span><span class="fu">ip</span><span class="kw">:</span><span class="at"> </span><span class="fl">10.30.0.20</span><span class="at"> </span><span class="kw">}]</span><span class="co">     # GPU host on inference VLAN</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true"></a><span class="at">    </span><span class="fu">ports</span><span class="kw">:</span><span class="at"> </span><span class="kw">[{</span><span class="at"> </span><span class="fu">port</span><span class="kw">:</span><span class="at"> </span><span class="dv">8000</span><span class="kw">,</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> https </span><span class="kw">}]</span></span></code></pre></div>
+<h2 id="93-egress-control-cilium-networkpolicy">9.3 Egress control (Cilium NetworkPolicy)</h2>
+<div class="sourceCode" id="cb3"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="fu">apiVersion</span><span class="kw">:</span><span class="at"> cilium.io/v2</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true"></a><span class="fu">kind</span><span class="kw">:</span><span class="at"> CiliumNetworkPolicy</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true"></a><span class="fu">metadata</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> allow-router-to-gpu</span><span class="kw">,</span><span class="at"> </span><span class="fu">namespace</span><span class="kw">:</span><span class="at"> gateway </span><span class="kw">}</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true"></a><span class="fu">spec</span><span class="kw">:</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true"></a><span class="at">  </span><span class="fu">endpointSelector</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="at"> </span><span class="fu">matchLabels</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="at"> </span><span class="fu">app</span><span class="kw">:</span><span class="at"> litellm </span><span class="kw">}</span><span class="at"> </span><span class="kw">}</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true"></a><span class="at">  </span><span class="fu">egress</span><span class="kw">:</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true"></a><span class="at">    </span><span class="kw">-</span><span class="at"> </span><span class="fu">toCIDR</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="st">&quot;10.30.0.20/32&quot;</span><span class="kw">]</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true"></a><span class="at">      </span><span class="fu">toPorts</span><span class="kw">:</span><span class="at"> </span><span class="kw">[{</span><span class="at"> </span><span class="fu">ports</span><span class="kw">:</span><span class="at"> </span><span class="kw">[{</span><span class="at"> </span><span class="fu">port</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;8000&quot;</span><span class="kw">,</span><span class="at"> </span><span class="fu">protocol</span><span class="kw">:</span><span class="at"> TCP </span><span class="kw">}]</span><span class="at"> </span><span class="kw">}]</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true"></a><span class="at">    </span><span class="kw">-</span><span class="at"> </span><span class="fu">toEndpoints</span><span class="kw">:</span><span class="at"> </span><span class="kw">[{</span><span class="at"> </span><span class="fu">matchLabels</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="at"> </span><span class="fu">&quot;k8s:io.kubernetes.pod.namespace&quot;</span><span class="kw">:</span><span class="at"> kube-system</span><span class="kw">,</span><span class="at"> </span><span class="fu">k8s-app</span><span class="kw">:</span><span class="at"> kube-dns </span><span class="kw">}</span><span class="at"> </span><span class="kw">}]</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true"></a><span class="at">      </span><span class="fu">toPorts</span><span class="kw">:</span><span class="at"> </span><span class="kw">[{</span><span class="at"> </span><span class="fu">ports</span><span class="kw">:</span><span class="at"> </span><span class="kw">[{</span><span class="at"> </span><span class="fu">port</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;53&quot;</span><span class="kw">,</span><span class="at"> </span><span class="fu">protocol</span><span class="kw">:</span><span class="at"> UDP </span><span class="kw">}]</span><span class="at"> </span><span class="kw">}]</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true"></a><span class="co">  # default-deny all other egress</span></span></code></pre></div>
+<p>Only LiteLLM router pods may egress to the GPU host; nothing else in the cluster can reach it.</p>
+<h2 id="94-port-matrix-cross-plane-additions">9.4 Port matrix (cross-plane additions)</h2>
+<table>
+<thead>
+<tr class="header">
+<th>From</th>
+<th>To</th>
+<th>Port</th>
+<th>Proto</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>LiteLLM router (blades)</td>
+<td>GPU inference gateway</td>
+<td>8000/443</td>
+<td>TCP/mTLS</td>
+<td>only allowed egress path</td>
+</tr>
+<tr class="even">
+<td>Prometheus (blade-03)</td>
+<td>GPU DCGM/node exporter</td>
+<td>9400/9100</td>
+<td>TCP</td>
+<td>metrics scrape</td>
+</tr>
+<tr class="odd">
+<td>GPU host</td>
+<td>MinIO (blades)</td>
+<td>9000</td>
+<td>TCP</td>
+<td>model pull (verified)</td>
+</tr>
+<tr class="even">
+<td>Admin</td>
+<td>GPU host BMC</td>
+<td>623</td>
+<td>UDP</td>
+<td>mgmt VLAN</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h1 id="10-security-architecture-cross-plane-zero-trust">10. Security Architecture (cross-plane, zero-trust)</h1>
+<table>
+<thead>
+<tr class="header">
+<th>Domain</th>
+<th>Control</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Data residency</strong></td>
+<td>both planes on-prem; inference VLAN never routes off-site; no external API calls</td>
+</tr>
+<tr class="even">
+<td><strong>Transport</strong></td>
+<td><strong>mTLS</strong> blades↔︎GPU; internal CA (cert-manager) issues both server (GPU gateway) and client (router) certs</td>
+</tr>
+<tr class="odd">
+<td><strong>AuthN to GPU</strong></td>
+<td>bearer token (Vault, short TTL) <strong>and</strong> client cert; GPU gateway rejects either missing</td>
+</tr>
+<tr class="even">
+<td><strong>Egress lockdown</strong></td>
+<td>only router pods reach the GPU host (Cilium policy §9.3); default-deny elsewhere</td>
+</tr>
+<tr class="odd">
+<td><strong>No content logging</strong></td>
+<td>gateway, router, and GPU engine configured to log <strong>metadata only</strong> (user, model, token counts, latency) — never prompts/responses</td>
+</tr>
+<tr class="even">
+<td><strong>PII/guardrails</strong></td>
+<td>redaction/guardrail service on the blades runs before the prompt leaves the app plane and after the response returns</td>
+</tr>
+<tr class="odd">
+<td><strong>Supply chain</strong></td>
+<td>all images signed (cosign) + digest-pinned + scanned (Trivy); <strong>model weights</strong> verified (SHA-256 + signature) before the GPU engine loads them; Kyverno enforces on the cluster</td>
+</tr>
+<tr class="even">
+<td><strong>Secrets</strong></td>
+<td>Vault; GPU host uses a Vault agent or sealed token; no secrets in images/Git</td>
+</tr>
+<tr class="odd">
+<td><strong>Isolation</strong></td>
+<td>GPU host firewalled to the inference VLAN; BMC on mgmt VLAN; PSA <code>restricted</code> on blade workloads</td>
+</tr>
+<tr class="even">
+<td><strong>Audit</strong></td>
+<td>K8s audit + gateway metadata audit; GPU host access logged</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Guardrails honored:</strong> endpoints never exposed without TLS + authN + quota + audit; prompts/responses not logged by default; images digest-pinned (no <code>:latest</code>); model artifacts treated as controlled supply-chain items.</p>
+</blockquote>
+<hr />
+<h1 id="11-storage--data-architecture">11. Storage &amp; Data Architecture</h1>
+<table>
+<thead>
+<tr class="header">
+<th>Data</th>
+<th>Location</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>etcd</td>
+<td>blade CP local NVMe</td>
+<td>dedicated, fsync-gated</td>
+</tr>
+<tr class="even">
+<td>Vector DB (Qdrant)</td>
+<td>blade NVMe PV</td>
+<td>persistent, backed up (Velero)</td>
+</tr>
+<tr class="odd">
+<td>Redis cache</td>
+<td>blade RAM/NVMe</td>
+<td>ephemeral/semi-persistent</td>
+</tr>
+<tr class="even">
+<td>Documents/corpora</td>
+<td>MinIO on blades</td>
+<td>on-prem object store; encrypted at rest</td>
+</tr>
+<tr class="odd">
+<td>Model weights (master)</td>
+<td><strong>MinIO on blades</strong></td>
+<td>signed + checksummed; single source of truth</td>
+</tr>
+<tr class="even">
+<td>Model weights (serving copy)</td>
+<td><strong>GPU host local NVMe</strong></td>
+<td>pulled + verified from MinIO; engine mmaps locally</td>
+</tr>
+<tr class="odd">
+<td>Observability data</td>
+<td>blade NVMe + MinIO long-term</td>
+<td>retention tiering</td>
+</tr>
+<tr class="even">
+<td>Backups</td>
+<td>MinIO + offsite</td>
+<td>3-2-1</td>
+</tr>
+</tbody>
+</table>
+<p>Model flow: publish to MinIO (verified) → GPU host pulls to local NVMe (<code>mc mirror</code> + <code>sha256sum</code> + <code>cosign verify</code>) → engine loads. Never serve weights over the network at inference time.</p>
+<hr />
+<h1 id="12-observability-across-the-boundary">12. Observability Across the Boundary</h1>
+<p>Single pane (blade Prometheus/Grafana) scraping <strong>both</strong> planes:</p>
+<ul>
+<li><strong>Blade services:</strong> request rate, latency, errors per microservice; gateway/router metrics; queue depth; vector-DB latency.</li>
+<li><strong>GPU plane:</strong> DCGM GPU util, VRAM used, temp/power; engine metrics — <strong>TTFT, inter-token latency, tokens/sec, running/queued requests, KV-cache utilization, preemptions</strong>.</li>
+<li><strong>Boundary metrics:</strong> router→GPU call latency, timeout/retry/circuit-breaker events, 429 rate, per-model/per-tenant token consumption (chargeback).</li>
+<li><strong>Traces:</strong> OpenTelemetry spans propagate from app → orchestrator → router → GPU call, so a slow request is attributable to a specific plane.</li>
+<li><strong>Alerts:</strong> GPU VRAM &gt; 90%, TTFT p95 breach, GPU host unreachable, circuit-breaker open, queue saturation, cert expiry, memory-headroom &lt; 20% on blades.</li>
+</ul>
+<hr />
+<h1 id="13-autoscaling-capacity--load-management">13. Autoscaling, Capacity &amp; Load Management</h1>
+<ul>
+<li><strong>Blade microservices:</strong> HPA/KEDA on latency + queue depth (not CPU% alone); scale gateway/orchestrator/router replicas across worker blades.</li>
+<li><strong>GPU plane:</strong> scaling = <strong>admission control + queue</strong>, because you have a fixed number of GPUs. When the GPU is saturated, the router returns 429 + <code>Retry-After</code>; batch traffic drains through the queue; interactive traffic is prioritized.</li>
+<li><strong>Concurrency budget:</strong> the GPU engine (vLLM) sets <code>--max-num-seqs</code> / KV-cache limits; the router enforces per-tenant caps so one app can't starve others.</li>
+<li><strong>Adding capacity:</strong> add GPUs/servers → register new backend in the router → traffic spreads. Blades don't change.</li>
+<li><strong>Capacity model:</strong> track GPU tokens/sec ceiling vs. demand; alert at 70/80% to trigger procurement (Appendix M).</li>
+</ul>
+<hr />
+<h1 id="14-high-availability--failure-analysis">14. High Availability &amp; Failure Analysis</h1>
+<table>
+<thead>
+<tr class="header">
+<th>Component</th>
+<th>HA posture</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Blade control-plane</td>
+<td><strong>HA</strong> (3 etcd, survives 1 loss)</td>
+<td>✅</td>
+</tr>
+<tr class="even">
+<td>Blade microservices (gateway/router/orchestrator)</td>
+<td><strong>HA</strong> (replicas + anti-affinity across blades)</td>
+<td>✅</td>
+</tr>
+<tr class="odd">
+<td>Vector DB / Redis</td>
+<td>HA via replication/clustering</td>
+<td>configure Qdrant replicas; Redis Sentinel/cluster</td>
+</tr>
+<tr class="even">
+<td>Embeddings/rerank (CPU)</td>
+<td>HA (replicated)</td>
+<td>✅</td>
+</tr>
+<tr class="odd">
+<td><strong>Single GPU server</strong></td>
+<td><strong>NOT HA</strong> — its loss stops large-model inference</td>
+<td>⚠️ mitigations below</td>
+</tr>
+<tr class="even">
+<td>GPU with 2+ servers</td>
+<td>HA if router failovers between them</td>
+<td>✅ recommended target</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Mitigations for GPU-plane availability:</strong></p>
+<ul>
+<li><strong>Router failover:</strong> LiteLLM configured with ≥2 GPU backends → automatic failover; with one server, failover degrades to a graceful error + queue.</li>
+<li><strong>Graceful degradation:</strong> on GPU outage, route eligible requests to a smaller CPU model on the blades (reduced quality) or queue with clear status; embeddings/RAG retrieval on blades keep working.</li>
+<li><strong>Fast restart:</strong> model pre-staged on GPU local NVMe for quick reload.</li>
+<li><strong>Roadmap:</strong> a second GPU server removes the single point of failure and doubles throughput.</li>
+</ul>
+<blockquote>
+<p><strong>Honesty:</strong> with one GPU server the inference plane is a single point of failure for large-model requests — do not claim full HA until ≥2 GPU backends exist. The <em>platform</em> (blades) remains HA regardless.</p>
+</blockquote>
+<hr />
+<h1 id="15-gitops-cicd--mlops">15. GitOps, CI/CD &amp; MLOps</h1>
+<ul>
+<li><strong>Repos:</strong> <code>platform-gitops</code> (cluster add-ons), <code>ai-apps</code> (microservices), <code>ai-router-config</code> (LiteLLM model map incl. GPU backends), <code>model-registry</code> (model metadata/provenance; weights in MinIO), <code>gpu-infra</code> (GPU host config, engine version, model pin).</li>
+<li><strong>Model promotion:</strong> register → verify signature/hash → deploy to GPU host (canary) → automated eval (quality + latency) → sign → flip router alias to new backend → monitor → promote. Rollback = revert router alias / Git tag.</li>
+<li><strong>Argo CD</strong> reconciles blade workloads; the GPU host (Option A) is driven by its own pinned automation (Ansible/compose) but its <strong>model pin + engine digest live in Git</strong> for auditability.</li>
+<li><strong>Admission:</strong> Kyverno enforces signed, digest-pinned images and verified model artifacts.</li>
+</ul>
+<hr />
+<h1 id="16-backup-dr--air-gapped-operation">16. Backup, DR &amp; Air-Gapped Operation</h1>
+<table>
+<thead>
+<tr class="header">
+<th>Asset</th>
+<th>Method</th>
+<th>Frequency</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>etcd</td>
+<td>RKE2 snapshot + off-node</td>
+<td>6 h</td>
+</tr>
+<tr class="even">
+<td>Vault</td>
+<td>Raft snapshot</td>
+<td>daily</td>
+</tr>
+<tr class="odd">
+<td>Qdrant / Redis / PVs</td>
+<td>Velero + restic → MinIO</td>
+<td>daily</td>
+</tr>
+<tr class="even">
+<td>MinIO (docs + model master)</td>
+<td>replication → offsite</td>
+<td>daily</td>
+</tr>
+<tr class="odd">
+<td>Cluster manifests / router config</td>
+<td>Git</td>
+<td>on commit</td>
+</tr>
+<tr class="even">
+<td>GPU host config + model pin</td>
+<td>Git + local NVMe copy</td>
+<td>on change</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Air-gap:</strong> connected staging host downloads → verifies (signature/hash) → scans → signs → imports images to Harbor, weights to MinIO. GPU engine images and CUDA/driver bundles are mirrored the same way. Admission rejects anything unsigned. <strong>DR:</strong> rebuild blades from GitOps + snapshots; rebuild GPU host from pinned config + re-pull verified weights from MinIO. Test restores quarterly.</p>
+<hr />
+<h1 id="17-implementation-phases">17. Implementation Phases</h1>
+<table>
+<thead>
+<tr class="header">
+<th>Phase</th>
+<th>Goal</th>
+<th>Exit criteria</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>0 Discovery &amp; requirements</strong></td>
+<td>blade HW discovery (companion doc §2); GPU procurement sizing (§7); app SLOs, concurrency, data rules</td>
+<td>inventory + GPU spec + SLOs agreed</td>
+</tr>
+<tr class="even">
+<td><strong>1 Blade HW remediation &amp; OS baseline</strong></td>
+<td>firmware parity, NUMA/perf, CIS, LUKS</td>
+<td>golden image; gates pass</td>
+</tr>
+<tr class="odd">
+<td><strong>2 Network &amp; storage prep</strong></td>
+<td>VLANs incl. <strong>inference VLAN</strong>, MTU, NVMe, MinIO</td>
+<td>port matrix live; etcd disk gated</td>
+</tr>
+<tr class="even">
+<td><strong>3 K8s control-plane</strong></td>
+<td>RKE2 3-node HA, VIP, snapshots, audit</td>
+<td>3 CP Ready; etcd healthy</td>
+</tr>
+<tr class="odd">
+<td><strong>4 Platform services</strong></td>
+<td>Cilium, cert-manager, Harbor, Vault, Argo, MinIO, ingress, Kyverno</td>
+<td>GitOps reconciling; registry signed</td>
+</tr>
+<tr class="even">
+<td><strong>5 Security hardening</strong></td>
+<td>PSA restricted, NetworkPolicies (incl. egress lockdown), Vault wiring, no-log config</td>
+<td>policy audit clean</td>
+</tr>
+<tr class="odd">
+<td><strong>6 Observability</strong></td>
+<td>Prometheus/Grafana/Loki/OTel; dashboards</td>
+<td>SLO dashboards + alerts live</td>
+</tr>
+<tr class="even">
+<td><strong>7 GPU inference plane</strong></td>
+<td>build GPU host, driver/CUDA, deploy vLLM + GLM-5.2, TLS+authN gateway, DCGM metrics</td>
+<td>GPU endpoint serves OpenAI API over mTLS; metrics scraped</td>
+</tr>
+<tr class="odd">
+<td><strong>8 Microservices deployment</strong></td>
+<td>gateway, LiteLLM router (→GPU + CPU models), Qdrant, Redis, embeddings, rerank, orchestrator/RAG</td>
+<td>end-to-end call works; embeddings on CPU</td>
+</tr>
+<tr class="even">
+<td><strong>9 Integration &amp; SLO testing</strong></td>
+<td>load test cross-plane; failover (kill GPU/backends); timeout/circuit-breaker; DR restore; security review</td>
+<td>SLOs met; graceful degradation proven</td>
+</tr>
+<tr class="odd">
+<td><strong>10 Controlled production onboarding</strong></td>
+<td>onboard AI solutions by tier with quotas; canary; monitor</td>
+<td>SLOs sustained; error budget healthy</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h1 id="18-installation-runbook-ordered-air-gap-assumed-versions-pinned">18. Installation Runbook (ordered, air-gap assumed, versions pinned)</h1>
+<h2 id="181-blade-platform-phases-36">18.1 Blade platform (Phases 3–6)</h2>
+<div class="sourceCode" id="cb4"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="co"># RKE2 HA control plane (blade-01 first, then 02/03) — see companion doc §24</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a><span class="va">INSTALL_RKE2_ARTIFACT_PATH=</span>/root/rke2-artifacts <span class="fu">sh</span> install.sh <span class="kw">&amp;&amp;</span> <span class="ex">systemctl</span> enable --now rke2-server</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a><span class="bu">export</span> <span class="va">KUBECONFIG=</span>/etc/rancher/rke2/rke2.yaml <span class="kw">&amp;&amp;</span> <span class="ex">kubectl</span> get nodes</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true"></a><span class="co"># workers 04/05/06 as agents, labelled for microservices</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true"></a><span class="ex">kubectl</span> label node blade-04 role=apps <span class="kw">;</span> <span class="ex">kubectl</span> label node blade-05 role=data <span class="kw">;</span> <span class="ex">kubectl</span> label node blade-06 role=data</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true"></a><span class="co"># platform add-ons via Argo CD app-of-apps</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true"></a><span class="ex">helm</span> install argocd oci://harbor.internal/charts/argo-cd -n argocd --create-namespace -f argocd-values.yaml</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true"></a><span class="ex">argocd</span> app sync app-of-apps   # cilium, cert-manager, harbor, vault, minio, monitoring, kyverno, keda</span></code></pre></div>
+<h2 id="182-gpu-inference-plane-phase-7-on-the-separate-gpu-host">18.2 GPU inference plane (Phase 7, on the separate GPU host)</h2>
+<div class="sourceCode" id="cb5"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="co"># driver + CUDA + container toolkit (pinned versions, air-gap bundle)</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true"></a><span class="ex">apt-get</span> install -y ./nvidia-driver-*.deb ./cuda-toolkit-*.deb ./nvidia-container-toolkit-*.deb</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true"></a><span class="ex">nvidia-smi</span>   # confirm GPUs visible</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true"></a><span class="co"># pull + verify GLM-5.2 weights from blade MinIO</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true"></a><span class="ex">mc</span> alias set blades https://minio.internal:9000 <span class="st">&quot;</span><span class="va">$AK</span><span class="st">&quot;</span> <span class="st">&quot;</span><span class="va">$SK</span><span class="st">&quot;</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true"></a><span class="ex">mc</span> mirror blades/models/glm-5.2/ /data/models/glm-5.2/</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true"></a><span class="ex">sha256sum</span> -c /data/models/glm-5.2/SHA256SUMS <span class="kw">&amp;&amp;</span> <span class="ex">cosign</span> verify --key cosign.pub ...  # gate load</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true"></a><span class="co"># run vLLM OpenAI-compatible server (tensor-parallel across GPUs), digest-pinned image</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true"></a><span class="ex">docker</span> run -d --gpus all --restart unless-stopped -p 8000:8000 <span class="kw">\</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true"></a>  <span class="ex">-v</span> /data/models:/models:ro -e VLLM_API_KEY_FILE=/run/secrets/vllm_key <span class="kw">\</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true"></a>  <span class="ex">harbor.internal/ai</span>/vllm-openai@sha256:<span class="ex">REPLACE</span> <span class="kw">\</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true"></a>  <span class="ex">--model</span> /models/glm-5.2 --served-model-name glm-5.2 <span class="kw">\</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true"></a>  <span class="ex">--tensor-parallel-size</span> 8 --quantization fp8 --max-model-len 32768 <span class="kw">\</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true"></a>  <span class="ex">--host</span> 0.0.0.0 --port 8000</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true"></a><span class="co"># front with TLS/mTLS gateway (Envoy/nginx) terminating on the inference VLAN</span></span></code></pre></div>
+<h2 id="183-wire-the-blades-to-the-gpu-endpoint-phase-8">18.3 Wire the blades to the GPU endpoint (Phase 8)</h2>
+<div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true"></a><span class="co"># ExternalName/Endpoints + egress policy (see §9.2–9.3), then LiteLLM values:</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true"></a><span class="ex">kubectl</span> apply -f gateway/gpu-inference-endpoints.yaml</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true"></a><span class="ex">kubectl</span> apply -f gateway/allow-router-to-gpu.yaml</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true"></a><span class="ex">helm</span> upgrade --install litellm oci://harbor.internal/charts/litellm -n gateway -f litellm-values.yaml</span></code></pre></div>
+<p>LiteLLM values (excerpt):</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true"></a><span class="fu">model_list</span><span class="kw">:</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">model_name</span><span class="kw">:</span><span class="at"> glm-5.2</span><span class="co">                       # logical name apps use</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true"></a><span class="at">    </span><span class="fu">litellm_params</span><span class="kw">:</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true"></a><span class="at">      </span><span class="fu">model</span><span class="kw">:</span><span class="at"> openai/glm-5.2</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true"></a><span class="at">      </span><span class="fu">api_base</span><span class="kw">:</span><span class="at"> https://gpu-inference.gateway.svc:8000/v1</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true"></a><span class="at">      </span><span class="fu">api_key</span><span class="kw">:</span><span class="at"> os.environ/GPU_INFER_TOKEN</span><span class="co">     # from Vault</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true"></a><span class="at">      </span><span class="fu">timeout</span><span class="kw">:</span><span class="at"> </span><span class="dv">120</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true"></a><span class="co">      # mTLS client cert paths mounted from cert-manager secret</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">model_name</span><span class="kw">:</span><span class="at"> bge-embed</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true"></a><span class="at">    </span><span class="fu">litellm_params</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="at"> </span><span class="fu">model</span><span class="kw">:</span><span class="at"> openai/bge</span><span class="kw">,</span><span class="at"> </span><span class="fu">api_base</span><span class="kw">:</span><span class="at"> http://tei-embed.models-cpu:80/v1 </span><span class="kw">}</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true"></a><span class="fu">general_settings</span><span class="kw">:</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true"></a><span class="at">  </span><span class="fu">master_key</span><span class="kw">:</span><span class="at"> os.environ/LITELLM_MASTER_KEY</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true"></a><span class="at">  </span><span class="fu">num_retries</span><span class="kw">:</span><span class="at"> </span><span class="dv">2</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true"></a><span class="at">  </span><span class="fu">request_timeout</span><span class="kw">:</span><span class="at"> </span><span class="dv">120</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true"></a><span class="co">  # fallbacks: on GPU failure, degrade to a CPU model or return 503+Retry-After</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true"></a><span class="at">  </span><span class="fu">fallbacks</span><span class="kw">:</span><span class="at"> </span><span class="kw">[{</span><span class="at"> </span><span class="fu">&quot;glm-5.2&quot;</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="st">&quot;glm-small-cpu&quot;</span><span class="kw">]</span><span class="at"> </span><span class="kw">}]</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true"></a><span class="fu">litellm_settings</span><span class="kw">:</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true"></a><span class="at">  </span><span class="fu">redact_messages_in_exceptions</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span><span class="co">         # no content in logs</span></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true"></a><span class="at">  </span><span class="fu">set_verbose</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span></code></pre></div>
+<h2 id="184-smoke-test-end-to-end">18.4 Smoke test (end to end)</h2>
+<div class="sourceCode" id="cb8"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true"></a><span class="ex">curl</span> -sk https://ai-gw.internal/v1/chat/completions <span class="kw">\</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true"></a>  <span class="ex">-H</span> <span class="st">&quot;Authorization: Bearer </span><span class="va">$APP_TOKEN</span><span class="st">&quot;</span> -H <span class="st">&quot;Content-Type: application/json&quot;</span> <span class="kw">\</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true"></a>  <span class="ex">-d</span> <span class="st">&#39;{&quot;model&quot;:&quot;glm-5.2&quot;,&quot;messages&quot;:[{&quot;role&quot;:&quot;user&quot;,&quot;content&quot;:&quot;ping&quot;}],&quot;max_tokens&quot;:16}&#39;</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true"></a><span class="co"># expect tokens streamed from the GPU plane via the blade router</span></span></code></pre></div>
+<hr />
+<h1 id="appendices">Appendices</h1>
+<h2 id="appendix-a-adrs">Appendix A. ADRs</h2>
+<ul>
+<li><strong>ADR-101</strong> Two-plane split: blades = microservices, GPU server = inference. <em>Accepted.</em></li>
+<li><strong>ADR-102</strong> GPU host standalone (Option A) not a cluster node initially. <em>Accepted.</em></li>
+<li><strong>ADR-103</strong> LiteLLM as the single model-router/broker to the GPU plane. <em>Accepted.</em></li>
+<li><strong>ADR-104</strong> Embeddings/rerankers stay on CPU blades. <em>Accepted.</em></li>
+<li><strong>ADR-105</strong> vLLM as primary GPU engine (OpenAI-compatible, tensor-parallel). <em>Accepted, verify GLM-5.2 support at pin.</em></li>
+<li><strong>ADR-106</strong> mTLS + token dual-auth on the plane boundary; egress locked to router pods. <em>Accepted.</em></li>
+<li><strong>ADR-107</strong> No content logging on either plane. <em>Accepted.</em></li>
+<li><strong>ADR-108</strong> ≥2 GPU backends required before claiming inference HA. <em>Accepted.</em></li>
+</ul>
+<h2 id="appendix-b-cross-plane-port-matrix">Appendix B. Cross-plane port matrix</h2>
+<p>See §9.4 (router→GPU 8000/mTLS; Prometheus→DCGM 9400; GPU→MinIO 9000; BMC 623).</p>
+<h2 id="appendix-c-kubernetes-manifests">Appendix C. Kubernetes manifests</h2>
+<p>See §9.2 (ExternalName/Endpoints), §9.3 (Cilium egress), §18.3 (LiteLLM). Add PDBs, HPAs/ScaledObjects for gateway/router/orchestrator, PSA restricted, Kyverno signature/digest policies (companion doc §16.3).</p>
+<h2 id="appendix-d-helm-values">Appendix D. Helm values</h2>
+<p>See §18.1 (Argo), §18.3 (LiteLLM). Per-add-on values in <code>platform-gitops</code>.</p>
+<h2 id="appendix-e-gpu-sizing-worksheet">Appendix E. GPU sizing worksheet</h2>
+<p>See §7.1. Fill actual GPU model/VRAM/count; add KV-cache VRAM for target concurrency × context; validate with a Phase-7 benchmark (TTFT/ITL/tok-s at target load).</p>
+<h2 id="appendix-f-production-readiness-checklist">Appendix F. Production-readiness checklist</h2>
+<p>Blade CP HA ✅ · etcd NVMe+snapshots ✅ · PSA restricted + default-deny + <strong>egress locked to router</strong> ✅ · images signed+digest-pinned (no <code>:latest</code>) ✅ · secrets in Vault ✅ · <strong>mTLS + token on GPU endpoint</strong> ✅ · no content logging (verified both planes) ✅ · ≥20% blade mem headroom ✅ · GPU VRAM/thermal alerts ✅ · router retries/timeouts/circuit-breaker/fallbacks tested ✅ · GPU-outage graceful degradation proven ✅ · backups+DR rehearsed (both planes) ✅ · SLO dashboards+alerts ✅ · onboarding quotas ✅.</p>
+<h2 id="appendix-g-risk-register-top-10">Appendix G. Risk register (top 10)</h2>
+<table>
+<thead>
+<tr class="header">
+<th>#</th>
+<th>Risk</th>
+<th>Impact</th>
+<th>Treatment</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td>Single GPU server = SPOF for inference</td>
+<td>High</td>
+<td>add 2nd GPU backend; router fallback to CPU model/queue</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td>GPU VRAM under-sized for GLM-5.2 + KV at concurrency</td>
+<td>High</td>
+<td>Phase-7 benchmark before go-live; size KV-cache</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td>Plane boundary unsecured</td>
+<td>Critical</td>
+<td>mTLS+token, egress lockdown, audit</td>
+</tr>
+<tr class="even">
+<td>4</td>
+<td>Content leaked via logs</td>
+<td>Critical</td>
+<td>no-log default both planes; verify in tests</td>
+</tr>
+<tr class="odd">
+<td>5</td>
+<td>GLM-5.2 unsupported by pinned engine</td>
+<td>Med</td>
+<td>verify at pin; fallback model</td>
+</tr>
+<tr class="even">
+<td>6</td>
+<td>Network saturation on inference VLAN</td>
+<td>Med</td>
+<td>dedicated VLAN, jumbo frames, monitor</td>
+</tr>
+<tr class="odd">
+<td>7</td>
+<td>Model supply-chain tampering</td>
+<td>Critical</td>
+<td>sign+verify weights before load</td>
+</tr>
+<tr class="even">
+<td>8</td>
+<td>Blade platform scaling limits</td>
+<td>Med</td>
+<td>replicas across 3 workers; add nodes later</td>
+</tr>
+<tr class="odd">
+<td>9</td>
+<td>Capacity managed on CPU%/GPU% only</td>
+<td>Med</td>
+<td>scale/alert on queue + TTFT + VRAM</td>
+</tr>
+<tr class="even">
+<td>10</td>
+<td>GPU host lifecycle drift</td>
+<td>Med</td>
+<td>pin engine/driver/model in Git; automation</td>
+</tr>
+</tbody>
+</table>
+<h2 id="appendix-h-bill-of-materials-software">Appendix H. Bill of Materials (software)</h2>
+<p>RKE2/K8s · Cilium · CoreDNS · cert-manager · Harbor(+Trivy+Notation) · Vault · MinIO · Argo CD · Kyverno · KEDA · kube-prometheus-stack · Loki · OpenTelemetry · Velero · <strong>LiteLLM</strong> · Envoy/APISIX · <strong>Qdrant</strong> · Redis · text-embeddings-inference · <strong>vLLM</strong> (GPU) · NVIDIA driver/CUDA/Container Toolkit/DCGM-exporter · cosign/Syft/Grype · Ansible. All open-source, air-gap-installable, pinned by digest/version.</p>
+<h2 id="appendix-i-capacity-model">Appendix I. Capacity model</h2>
+<p>Blade side: replicas × req/s/replica per microservice (I/O-bound). GPU side: engine tokens/sec ceiling at target context/concurrency (measure Phase 7). Sustained solution throughput = min(blade orchestration ceiling, GPU token ceiling). Alert at 70/80% of GPU ceiling → add GPU capacity.</p>
+<h2 id="appendix-j-gpu-expansion-roadmap">Appendix J. GPU expansion roadmap</h2>
+<p>Phase A: 1 GPU server (GLM-5.2 FP8/INT4, TP=8). Phase B: 2nd GPU server → inference HA + ~2× throughput via router load-balancing. Phase C: dedicated GPU node pool joined to cluster (Option B) once ≥2–3 GPU nodes justify unified scheduling; add more models/tiers. Blades and all microservices remain unchanged throughout — only backends are added.</p>
+<hr />
+<h2 id="notes-on-facts--assumptions">Notes on facts &amp; assumptions</h2>
+<ul>
+<li>GLM-5.2 sizing (744B MoE, ~40B active, ~460–480 GB INT4/Q4, ~740–800 GB FP8, up to 1M ctx) is <strong>[DOC/EST]</strong> from public 2026 model docs; <strong>confirm exact GPU count/VRAM and KV-cache needs against your pinned vLLM + GLM-5.2 build during Phase 0/7 procurement and benchmarking.</strong></li>
+<li>Blade per-blade RAM/CPU/ISA/bandwidth remain <strong>[ASSUMPTION]</strong> until the companion doc's Phase-0 discovery scripts are run.</li>
+<li>Every latency/throughput figure is <strong>[EST]</strong> until Phase 7/9 benchmarks make it <strong>[TESTED]</strong>. Do not publish SLOs before those gates.</li>
+</ul>
+<p><strong>Bottom line:</strong> the blades are an excellent home for the <em>entire AI solution</em> except the model itself; a separate GPU server hosts GLM-5.2 and is reached through a secured, swappable OpenAI-compatible contract brokered by the model router. This is the correct, honest architecture given CPU-only blades.</p>
+</body>
+</html>

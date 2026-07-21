@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>6-Blade Kubernetes AI Platform — Detailed Architecture</title>
+<style>
+  :root{
+    --navy:#1E2761; --deep:#141A3C; --blue:#2E75B6; --ice:#CADCFC; --gold:#E8A62E;
+    --green:#2E7D32; --teal:#028090; --purple:#6D4C9F; --red:#B23A2E; --amber:#B7791F;
+    --ink:#1A2233; --muted:#5E6C84; --rule:#D8DEEB; --bg:#EEF2FA; --card:#FFFFFF;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;line-height:1.4;}
+  .wrap{max-width:1360px;margin:0 auto;padding:28px 22px 60px;}
+  header{background:linear-gradient(135deg,var(--navy),var(--deep));color:#fff;border-radius:14px;
+    padding:22px 28px;margin-bottom:22px;box-shadow:0 6px 18px rgba(20,26,60,.25);}
+  header h1{margin:0 0 4px;font-size:26px;letter-spacing:.2px;}
+  header p{margin:0;color:var(--ice);font-size:14px;}
+  .tag{display:inline-block;background:var(--gold);color:#3a2a00;font-weight:700;font-size:11px;
+    padding:2px 9px;border-radius:20px;margin-bottom:8px;letter-spacing:.5px;}
+  h2.section{font-size:16px;color:var(--navy);margin:26px 0 12px;padding-bottom:6px;
+    border-bottom:2px solid var(--navy);display:flex;align-items:center;gap:8px;}
+  h2.section .n{background:var(--navy);color:#fff;border-radius:6px;font-size:13px;width:24px;height:24px;
+    display:inline-flex;align-items:center;justify-content:center;}
+  .band{background:var(--card);border:1px solid var(--rule);border-radius:12px;padding:14px 16px;
+    box-shadow:0 2px 6px rgba(30,39,97,.06);}
+  .flow{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;}
+  .pill{background:#fff;border:1.5px solid var(--blue);color:var(--navy);border-radius:22px;
+    padding:8px 16px;font-weight:600;font-size:13px;}
+  .arrow{color:var(--gold);font-size:22px;font-weight:800;}
+  .down{text-align:center;color:var(--gold);font-size:26px;font-weight:800;line-height:.6;margin:6px 0;}
+  /* chassis */
+  .chassis{background:#1b2246;border-radius:14px;
+    padding:16px;border:2px solid #2c356b;}
+  .chassis-title{color:#fff;font-weight:700;font-size:14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;}
+  .chassis-title span.sub{color:var(--ice);font-weight:500;font-size:12px;}
+  .blades{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+  .blade{background:var(--card);border-radius:10px;border-top:5px solid var(--navy);padding:10px 12px;
+    box-shadow:0 3px 8px rgba(0,0,0,.18);}
+  .blade.cp{border-top-color:var(--navy);}
+  .blade.worker{border-top-color:var(--teal);}
+  .blade.gpuprep{border-top-color:var(--gold);}
+  .blade h3{margin:0 0 2px;font-size:14px;color:var(--navy);display:flex;justify-content:space-between;align-items:center;}
+  .blade .role{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;}
+  .blade .role.t{color:var(--teal);}
+  .comp{display:block;font-size:12px;background:#F3F6FC;border:1px solid #E2E8F5;border-radius:6px;
+    padding:4px 8px;margin:4px 0;}
+  .comp b{color:var(--navy);}
+  .comp.etcd{background:#FFF6E5;border-color:#F2D48A;}
+  .comp.sec{background:#F2ECFA;border-color:#D9C8F0;}
+  .comp.obs{background:#E8F5EC;border-color:#BFE3C9;}
+  .comp.data{background:#E6F4F5;border-color:#B7DDDF;}
+  .comp.ai{background:#EAF1FB;border-color:#C6D9F3;}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:10px;}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .sw{width:14px;height:14px;border-radius:4px;display:inline-block;border:1px solid rgba(0,0,0,.15);}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+  .mini{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:12px 14px;}
+  .mini h4{margin:0 0 8px;font-size:13px;color:var(--navy);}
+  .mini ul{margin:0;padding-left:16px;font-size:12.5px;color:var(--ink);}
+  .mini li{margin:3px 0;}
+  .vlan{display:flex;justify-content:space-between;font-size:12.5px;padding:6px 8px;border-radius:6px;margin:4px 0;}
+  .vlan b{color:var(--navy);}
+  .gpu{background:linear-gradient(135deg,#0d4f6b,#02384d);color:#fff;border-radius:14px;padding:16px 18px;border:2px solid #12658a;}
+  .gpu h3{margin:0 0 4px;color:#fff;font-size:16px;}
+  .gpu .sub{color:#bfe4f2;font-size:12.5px;margin-bottom:10px;}
+  .gpu .g{display:inline-block;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);
+    border-radius:7px;padding:6px 10px;margin:4px 6px 4px 0;font-size:12.5px;}
+  .conn{display:flex;align-items:center;justify-content:center;gap:12px;margin:12px 0;flex-wrap:wrap;}
+  .conn .lbl{background:var(--gold);color:#3a2a00;font-weight:700;font-size:12px;border-radius:20px;padding:4px 12px;}
+  .note{font-size:12px;color:var(--muted);margin-top:8px;font-style:italic;}
+  .kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+  .kpi .k{background:var(--navy);color:#fff;border-radius:10px;padding:12px;text-align:center;}
+  .kpi .k .v{font-size:22px;font-weight:800;color:var(--gold);}
+  .kpi .k .l{font-size:11.5px;color:var(--ice);margin-top:2px;}
+  footer{margin-top:26px;font-size:11.5px;color:var(--muted);text-align:center;}
+  .reserve{background:#FFF6E5;border:1px dashed #E0B84C;border-radius:8px;padding:6px 8px;font-size:11.5px;color:#7a5b12;margin-top:6px;}
+  @media print{body{background:#fff;} header{box-shadow:none;} .band,.mini{box-shadow:none;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="tag">MOST OPTIMAL VIABLE SOLUTION · TWO-PLANE</div>
+    <h1>6-Blade Kubernetes AI Platform — Detailed Architecture</h1>
+    <p>Supermicro SBE-820C-822 chassis · 6× SBI-8149P-C4N (CPU-only) running RKE2 · GLM-5.2 inference on a separate GPU plane</p>
+  </header>
+
+  <!-- KPIs -->
+  <div class="kpi">
+    <div class="k"><div class="v">6</div><div class="l">Blades (3 control-plane + 3 workers)</div></div>
+    <div class="k"><div class="v">3</div><div class="l">etcd members — HA quorum</div></div>
+    <div class="k"><div class="v">≥20%</div><div class="l">Reserved RAM headroom / node</div></div>
+    <div class="k"><div class="v">1→2</div><div class="l">GPU servers (HA on roadmap)</div></div>
+  </div>
+
+  <!-- 1. Consumers + gateway -->
+  <h2 class="section"><span class="n">1</span>Consumers &amp; Entry (North–South)</h2>
+  <div class="band">
+    <div class="flow">
+      <span class="pill">Internal apps &amp; copilots</span>
+      <span class="pill">RAG services</span>
+      <span class="pill">Batch / ingestion pipelines</span>
+      <span class="arrow">→</span>
+      <span class="pill" style="border-color:var(--gold)">Ingress (TLS) · ingress-nginx</span>
+      <span class="arrow">→</span>
+      <span class="pill" style="border-color:var(--gold)">API Gateway · authN/Z · quota · audit-meta</span>
+    </div>
+    <div class="note">TLS terminates at ingress; the gateway authenticates every request, enforces quotas, and records metadata only — never prompt/response bodies.</div>
+  </div>
+  <div class="down">▼</div>
+
+  <!-- 2. Physical: chassis + blades -->
+  <h2 class="section"><span class="n">2</span>Plane 1 — Physical Blade Allocation (RKE2 Kubernetes)</h2>
+  <div class="chassis">
+    <div class="chassis-title">
+      <span>▧ Supermicro SBE-820C-822 Chassis — dual redundant switch modules</span>
+      <span class="sub">CPU-only · ~1,000 cores · ~2 TB RAM aggregate (per-blade split = assumption, confirm in discovery)</span>
+    </div>
+    <div class="blades">
+      <!-- CP1 -->
+      <div class="blade cp">
+        <h3>blade-01 <span style="font-size:11px;color:var(--muted)">10.20.0.11</span></h3>
+        <div class="role">Control plane · tainted NoSchedule</div>
+        <span class="comp"><b>kube-apiserver</b> · scheduler · controller-mgr</span>
+        <span class="comp etcd"><b>etcd member 1</b> · dedicated NVMe</span>
+        <span class="comp ai"><b>ingress-nginx</b></span>
+        <div class="reserve">Reserve: OS + kubelet + ≥20% RAM headroom</div>
+      </div>
+      <!-- CP2 -->
+      <div class="blade cp">
+        <h3>blade-02 <span style="font-size:11px;color:var(--muted)">10.20.0.12</span></h3>
+        <div class="role">Control plane · tainted NoSchedule</div>
+        <span class="comp"><b>kube-apiserver</b> · scheduler · controller-mgr</span>
+        <span class="comp etcd"><b>etcd member 2</b> · dedicated NVMe</span>
+        <span class="comp sec"><b>Vault</b> · cert-manager · Harbor</span>
+        <div class="reserve">Reserve: OS + kubelet + ≥20% RAM headroom</div>
+      </div>
+      <!-- CP3 -->
+      <div class="blade cp">
+        <h3>blade-03 <span style="font-size:11px;color:var(--muted)">10.20.0.13</span></h3>
+        <div class="role">Control plane · tainted NoSchedule</div>
+        <span class="comp"><b>kube-apiserver</b> · scheduler · controller-mgr</span>
+        <span class="comp etcd"><b>etcd member 3</b> · dedicated NVMe</span>
+        <span class="comp obs"><b>Prometheus</b> · Loki · Grafana · Argo CD</span>
+        <div class="reserve">Reserve: OS + kubelet + obs + ≥20%</div>
+      </div>
+      <!-- W1 -->
+      <div class="blade worker">
+        <h3>blade-04 <span style="font-size:11px;color:var(--muted)">10.20.0.14</span></h3>
+        <div class="role t">Worker · AI apps</div>
+        <span class="comp ai"><b>API Gateway</b> (Envoy/APISIX)</span>
+        <span class="comp ai"><b>LiteLLM model router</b> → GPU + CPU models</span>
+        <span class="comp ai"><b>Orchestrator / RAG / agents</b></span>
+        <span class="comp ai">Guardrails / PII redaction</span>
+        <div class="reserve">Guaranteed QoS · anti-affinity · ≥20% headroom</div>
+      </div>
+      <!-- W2 -->
+      <div class="blade worker">
+        <h3>blade-05 <span style="font-size:11px;color:var(--muted)">10.20.0.15</span></h3>
+        <div class="role t">Worker · data + CPU models</div>
+        <span class="comp data"><b>Qdrant</b> vector DB (persistent NVMe)</span>
+        <span class="comp data"><b>Redis</b> cache / rate-limit store</span>
+        <span class="comp ai"><b>Embeddings</b> (text-embeddings-inference, BGE-M3)</span>
+        <span class="comp ai">NUMA-pinned · CPU</span>
+        <div class="reserve">Guaranteed QoS · ≥20% headroom</div>
+      </div>
+      <!-- W3 -->
+      <div class="blade worker">
+        <h3>blade-06 <span style="font-size:11px;color:var(--muted)">10.20.0.16</span></h3>
+        <div class="role t">Worker · CPU models + burst</div>
+        <span class="comp ai"><b>Rerankers</b> (cross-encoder, ONNX/TEI)</span>
+        <span class="comp ai"><b>Embeddings replica</b></span>
+        <span class="comp data"><b>Ingestion workers</b> + queue (NATS)</span>
+        <span class="comp">Batch / burst capacity</span>
+        <div class="reserve">Guaranteed QoS · ≥20% headroom</div>
+      </div>
+    </div>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--navy)"></i> Control plane / etcd</span>
+      <span><i class="sw" style="background:var(--teal)"></i> Worker (microservices)</span>
+      <span><i class="sw" style="background:#FFF6E5;border-color:#F2D48A"></i> etcd (dedicated NVMe)</span>
+      <span><i class="sw" style="background:#F2ECFA"></i> Security</span>
+      <span><i class="sw" style="background:#E8F5EC"></i> Observability</span>
+      <span><i class="sw" style="background:#E6F4F5"></i> Data</span>
+      <span><i class="sw" style="background:#EAF1FB"></i> AI service</span>
+    </div>
+  </div>
+
+  <!-- 3. Cross-cutting platform layers -->
+  <h2 class="section"><span class="n">3</span>Cluster-Wide Platform Layers (East–West)</h2>
+  <div class="grid3">
+    <div class="mini">
+      <h4>Orchestration &amp; Networking</h4>
+      <ul>
+        <li>RKE2 (Kubernetes) · containerd</li>
+        <li>Cilium eBPF CNI · default-deny NetworkPolicy</li>
+        <li>CoreDNS · kube-vip (API VIP 10.20.0.10)</li>
+        <li>KEDA + HPA (scale on queue/latency, not CPU%)</li>
+      </ul>
+    </div>
+    <div class="mini">
+      <h4>Security &amp; Supply Chain</h4>
+      <ul>
+        <li>Vault (secrets) · cert-manager (internal CA)</li>
+        <li>Kyverno admission — signed + digest-pinned images</li>
+        <li>Harbor registry · Trivy scan · cosign/Notation</li>
+        <li>PSA restricted · mTLS east-west · audit log</li>
+      </ul>
+    </div>
+    <div class="mini">
+      <h4>GitOps · MLOps · Observability</h4>
+      <ul>
+        <li>Argo CD (app-of-apps, pinned tags)</li>
+        <li>Model registry (metadata) + MinIO (weights)</li>
+        <li>Prometheus · Loki (redacted) · Grafana · OTel</li>
+        <li>Velero backups → MinIO</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 4. Network + storage -->
+  <h2 class="section"><span class="n">4</span>Network Segmentation &amp; Storage</h2>
+  <div class="grid2">
+    <div class="mini">
+      <h4>VLAN segmentation</h4>
+      <div class="vlan" style="background:#F2ECFA"><span><b>Mgmt / IPMI</b> — BMC, provisioning</span><span>isolated</span></div>
+      <div class="vlan" style="background:#EAF1FB"><span><b>K8s node / API</b> — kubelet, etcd peer</span><span>low-latency</span></div>
+      <div class="vlan" style="background:#E8F5EC"><span><b>Pod / CNI</b> — Cilium overlay</span><span>default-deny</span></div>
+      <div class="vlan" style="background:#E6F4F5"><span><b>Storage</b> — MinIO / NVMe, jumbo MTU 9000</span><span>VLAN</span></div>
+      <div class="vlan" style="background:#FFF6E5"><span><b>Inference VLAN</b> — blades ↔ GPU (mTLS only)</span><span>firewalled</span></div>
+      <div class="vlan" style="background:#F3F6FC"><span><b>Ingress</b> — consumers → gateway</span><span>TLS</span></div>
+    </div>
+    <div class="mini">
+      <h4>Storage design (no default Ceph)</h4>
+      <ul>
+        <li><b>etcd</b> → dedicated local NVMe per CP (p99 fsync &lt; 10 ms)</li>
+        <li><b>Vector DB / Redis</b> → local NVMe persistent volumes</li>
+        <li><b>MinIO</b> (on blades) → object store: model master copy (signed + checksummed), documents, backups</li>
+        <li><b>Model serving copy</b> → pulled &amp; verified to GPU host local NVMe</li>
+        <li><b>Observability</b> → local NVMe + MinIO long-term tier</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 5. Plane boundary + GPU -->
+  <h2 class="section"><span class="n">5</span>Plane Boundary → Plane 2 GPU Inference (Separate Server)</h2>
+  <div class="band">
+    <div class="conn">
+      <span class="pill" style="border-color:var(--navy)"><b>LiteLLM router</b> (blade-04)</span>
+      <span class="arrow">→</span>
+      <span class="lbl">mTLS + bearer token · OpenAI-compatible · inference VLAN</span>
+      <span class="arrow">→</span>
+      <span class="pill" style="border-color:var(--teal)"><b>ExternalName / Endpoints</b> → gpu-infer 10.30.0.20:8000</span>
+    </div>
+    <div class="note">Cilium egress policy allows only router pods to reach the GPU host. Only a URL + credentials cross the boundary — the GPU backend is swappable without touching any microservice.</div>
+  </div>
+  <div class="down">▼</div>
+  <div class="gpu">
+    <h3>⛁ Plane 2 — Dedicated GPU Server (external to blade cluster)</h3>
+    <div class="sub">Runs GLM-5.2 (744B MoE) that the CPU blades cannot host · tensor-parallel over NVLink · no content logging</div>
+    <span class="g"><b>Inference gateway</b> — TLS · authN · rate-limit</span>
+    <span class="g"><b>vLLM / SGLang</b> — OpenAI-compatible server</span>
+    <span class="g"><b>GLM-5.2</b> — FP8 ≈ 740–800 GB · INT4 ≈ 460–480 GB</span>
+    <span class="g"><b>8× 80 GB GPUs</b> (illustrative) · TP=8</span>
+    <span class="g"><b>Local NVMe</b> model store (verified pull from MinIO)</span>
+    <span class="g"><b>DCGM exporter</b> → blade Prometheus</span>
+    <div class="note" style="color:#bfe4f2">One GPU server = single point of failure for the large model; a 2nd backend (router failover) delivers inference HA and ~2× throughput — GPU expansion roadmap.</div>
+  </div>
+
+  <footer>
+    Evidence tags — [DOC] documented · [EST] estimate, benchmark to confirm · [ASSUMPTION] pending Phase-0 hardware discovery.
+    All data &amp; prompts remain on-premises. Provisional until discovery/benchmark replace assumptions with measured facts.
+    &nbsp;·&nbsp; Enterprise Architecture · July 2026
+  </footer>
+</div>
+</body>
+</html>
